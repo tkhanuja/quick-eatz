@@ -1,0 +1,31 @@
+Metadata-Version: 2.1
+Name: yatl
+Version: 20210326.1
+Summary: Yet Another Template Language
+Home-page: https://github.com/web2py/yatl
+Author: Massimo Di Pierro
+Author-email: massimo.dipierro@gmail.com
+Maintainer: Massimo Di Pierro
+Maintainer-email: massimo.dipierro@gmail.com
+License: BSD
+Description: This is a spin-off of the web2py template language, framework agnostic, documented in the web2py book. Includes helpers and sanitizer.
+Platform: any
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing :: Markup :: HTML
+Description-Content-Type: text/markdown

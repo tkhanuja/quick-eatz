@@ -1,0 +1,52 @@
+timestamp: 2021-04-16T12:51:58.244891
+CREATE TABLE "recipes"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "name" CHAR(512) UNIQUE,
+    "cooktime" INTEGER,
+    "cuisine" CHAR(512),
+    "instructions" CHAR(512),
+    "description" CHAR(512),
+    "image" CHAR(512),
+    "number" INTEGER,
+    "keyword1" CHAR(512),
+    "keyword2" CHAR(512),
+    "keyword3" CHAR(512)
+);
+success!
+timestamp: 2021-04-16T12:51:58.246685
+CREATE TABLE "ingredients"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "ingredients" CHAR(512) UNIQUE,
+    "keyword1" CHAR(512),
+    "keyword2" CHAR(512)
+);
+success!
+timestamp: 2021-04-16T12:51:58.247533
+CREATE TABLE "ownership"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "recipe" INTEGER REFERENCES "recipes" ("id") ON DELETE CASCADE  ,
+    "ingredient" INTEGER REFERENCES "ingredients" ("id") ON DELETE CASCADE  ,
+    "amount" CHAR(512)
+);
+success!
+timestamp: 2021-04-16T12:51:58.250916
+CREATE TABLE "auth_user"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "username" CHAR(512) UNIQUE,
+    "email" CHAR(512) UNIQUE,
+    "password" CHAR(512),
+    "first_name" CHAR(512),
+    "last_name" CHAR(512),
+    "sso_id" CHAR(512),
+    "action_token" CHAR(512),
+    "last_password_change" TIMESTAMP,
+    "past_passwords_hash" TEXT
+);
+success!
+timestamp: 2021-04-16T12:51:58.251861
+CREATE TABLE "auth_user_tag_groups"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "path" CHAR(512),
+    "record_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE  
+);
+success!
