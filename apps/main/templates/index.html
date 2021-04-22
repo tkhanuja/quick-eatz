@@ -1,15 +1,11 @@
 [[extend 'layout.html']]
 
 <div class="section">
-  <div class="vars">
-      [[for i in range(0,len(information)):]]
-      <div>[[ =information[i][i]['name'] ]]</div>
-      <div><img src = [[ =information[i][i]['image'] ]]></div>
-      <div>[[ =information[i][i]['description'] ]]</div>
-      <div>Cuisine: [[ =information[i][i]['cuisine'] ]]</div>
-      <div>Cooktime: [[ =information[i][i]['cooktime'] ]]</div>
-      <div>[[ =ingredients[ information[i][i]['name'] ] ]]</div>
-      <div>[[ =information[i][i]['instructions'] ]]</div>
-      [[pass]]
+  <div>Total Results: [[=numResults]]</div>
+  <div>
+    [[for n in names:]]
+    <a href="[[ =URL('api/information/', n) ]]">
+      <button>[[=n]]</button>
+    [[pass]]
   </div>
 </div>

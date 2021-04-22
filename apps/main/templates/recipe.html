@@ -1,0 +1,27 @@
+[[extend 'layout.html']]
+<div class="section">
+
+    
+    <h1 class = 'is-capitalized has-text-centered title' >
+        
+        [[ =recipe[0]['name'] ]]
+        
+    </h1>
+    <div class = 'has-text-centered'>
+        <div><img src=[[=recipe[0]['image'] ]]></div>
+    </div>
+    <div>[[ =descriptions ]]</div>
+    <div>Cuisine:[[ =recipe[0]['cuisine'] ]]</div>
+        
+    <div>Cooktime: [[ =recipe[0]['cooktime'] ]]</div>
+    <div>
+        Ingredients:
+        [[for i in ingredients:]]
+        <div>[[=i]] : [[=amounts[i] ]]</div>
+        [[pass]]
+    </div>
+
+
+    <div>[[ =instructions ]]</div>
+    
+</div>
