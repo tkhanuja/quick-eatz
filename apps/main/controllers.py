@@ -72,7 +72,7 @@ def index():
 
 
 @action('api/forms', method=["GET", "POST"])
-@action.uses(db, session, 'home.html')
+@action.uses(db, session, auth, auth.user, 'home.html')
 def forms():
     form = Form([Field('ingredient1'), Field('ingredient2'), Field('ingredient3'), Field('ingredient4'), Field('ingredient5'), Field('ingredient6'), Field('ingredient7'), Field('ingredient8'), Field('ingredient9'), Field('ingredient10'), Field('ingredient11'), Field('ingredient12'), Field('ingredient13'), Field('ingredient14'), Field('ingredient15'), Field('ingredient16'), Field('ingredient17'), Field('ingredient18'), Field('ingredient19'), Field('ingredient20') ],formstyle=FormStyleBulma)
     ingredients= ''
