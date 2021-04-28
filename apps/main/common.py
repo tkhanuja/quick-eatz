@@ -2,9 +2,13 @@
 This file defines cache, session, and translator T object for the app
 These are fixtures that every app needs so probably you will not be editing this file
 """
+from py4web.core import required_folder
+from pydal.validators import *
+from py4web import DAL, Field
 import os
 import sys
 import logging
+from py4web.core import required_folder
 from py4web import Session, Cache, Translator, Flash, DAL, Field, action
 from py4web.utils.mailer import Mailer
 from py4web.utils.auth import Auth
@@ -12,7 +16,7 @@ from py4web.utils.downloader import downloader
 from py4web.utils.tags import Tags
 from py4web.utils.factories import ActionFactory
 # from .
-from .models import db
+
 from . import settings
 
 # #######################################################
@@ -42,6 +46,20 @@ for item in settings.LOGGERS:
 #     migrate=settings.DB_MIGRATE,
 #     fake_migrate=settings.DB_FAKE_MIGRATE,
 # )
+APP_FOLDER = os.path.dirname(__file__)
+APP_NAME = os.path.split(APP_FOLDER)[-1]
+DB_FOLDER = required_folder(APP_FOLDER, "databases")
+DB_URI = "sqlite://recipes.db"
+DB_POOL_SIZE = 1
+DB_MIGRATE = True
+DB_FAKE_MIGRATE = False
+db = DAL(
+    DB_URI,
+    folder=DB_FOLDER,
+    pool_size=DB_POOL_SIZE,
+    migrate=DB_MIGRATE,
+    fake_migrate=DB_FAKE_MIGRATE,
+)
 
 # #######################################################
 # define global objects that may or may not be used by the actions

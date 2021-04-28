@@ -50,3 +50,10 @@ CREATE TABLE "auth_user_tag_groups"(
     "record_id" INTEGER REFERENCES "auth_user" ("id") ON DELETE CASCADE  
 );
 success!
+timestamp: 2021-04-27T21:30:20.947265
+CREATE TABLE "user_groceries"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "email" CHAR(512),
+    "groceries" CHAR(512)
+);
+success!

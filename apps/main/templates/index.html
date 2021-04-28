@@ -4,8 +4,10 @@
   <div>Total Results: [[=numResults]]</div>
   <div>
     [[for n in names:]]
-    <a href="[[ =URL('api/information/', n) ]]">
-      <button>[[=n]]</button>
+    <div>
+      <a href="[[ =URL('api/information/', n) ]]">
+        <button>[[=n]]</button>
+    </div>
     [[pass]]
   </div>
 </div>

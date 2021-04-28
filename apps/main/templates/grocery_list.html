@@ -1,0 +1,38 @@
+[[extend 'layout.html']]
+
+<div class="section">
+
+    <h1 class='title'>Ingredients </h1>
+
+    <div>
+        <a href="[[=URL('add')]]">
+            <button>Add new ingredient</button>
+        </a>
+    </div>
+    
+    <table class='table is-striped is-fullwidth is bordered'>
+        <thead>
+            
+            <th>Ingredients</th>
+            
+        </thead>
+        <tbody>
+            [[for g in groceries: ]]
+            <tr>
+                <td>[[ =g['groceries'] ]]</td>
+                
+                <td>
+                    <a href="[[=URL('edit', g['id'])]]">
+                        <button>Edit</button>
+                    </a>
+                </td>
+                
+            </tr>
+            [[pass]]
+        </tbody>
+    </table>
+    <div>
+        Add new search parameters here:
+        [[=form]]
+    </div>
+</div>

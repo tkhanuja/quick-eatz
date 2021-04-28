@@ -3,26 +3,19 @@ This file defines the database models
 """
 
 # from .common import Field
+import datetime
 from py4web import DAL, Field
 from pydal.validators import *
-from py4web.core import required_folder
 import os
-APP_FOLDER = os.path.dirname(__file__)
-APP_NAME = os.path.split(APP_FOLDER)[-1]
-DB_FOLDER = required_folder(APP_FOLDER, "databases")
-DB_URI = "sqlite://recipes.db"
-DB_POOL_SIZE = 1
-DB_MIGRATE = True
-DB_FAKE_MIGRATE = False
-db = DAL(
-    DB_URI,
-    folder=DB_FOLDER,
-    pool_size=DB_POOL_SIZE,
-    migrate=DB_MIGRATE,
-    fake_migrate=DB_FAKE_MIGRATE,
-)
+from .common import db, auth
 
 
+def get_user_email():
+    return auth.current_user.get('email') if auth.current_user else None
+
+
+def get_time():
+    return datetime.datetime.utcnow()
 db.define_table('recipes',
                 Field('name', type='string', unique = True),
                 Field('cooktime', type='integer'),
@@ -45,6 +38,9 @@ db.define_table('ownership',
                 Field('recipe', type='reference recipes'),
                 Field('ingredient', type='reference ingredients'),
                 Field('amount', type='string'))
+db.define_table('user_groceries',
+                Field('email', writable = False),
+                Field('groceries'))
 db.commit()
 recipes_and_ingredients = db((db.recipes.id == db.ownership.recipe) and (
     db.ingredients.id == db.ownership.ingredient))

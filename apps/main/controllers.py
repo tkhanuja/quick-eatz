@@ -38,27 +38,8 @@ import json, os
 import urllib
 from io import StringIO
 from html.parser import HTMLParser
+from .models import get_user_email
 
-
-class MLStripper(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.reset()
-        self.strict = False
-        self.convert_charrefs = True
-        self.text = StringIO()
-
-    def handle_data(self, d):
-        self.text.write(d)
-
-    def get_data(self):
-        return self.text.getvalue()
-
-
-def strip_tags(html):
-    s = MLStripper()
-    s.feed(html)
-    return s.get_data()
 
 policy = Policy()
 policy.set("ingredients", 'GET', authorize=True)
@@ -68,33 +49,282 @@ policy.set('ownership', "GET", authorize=True)
 
 @unauthenticated("index")
 def index(): 
+    redirect(URL('api/forms'))
     return 
 
 
-@action('api/forms', method=["GET", "POST"])
-@action.uses(db, session, auth, auth.user, 'home.html')
+@action('api/forms/auth', method=["GET", "POST"])
+@action.uses(db, session, auth, auth.user, 'home_auth.html')
 def forms():
-    form = Form([Field('ingredient1'), Field('ingredient2'), Field('ingredient3'), Field('ingredient4'), Field('ingredient5'), Field('ingredient6'), Field('ingredient7'), Field('ingredient8'), Field('ingredient9'), Field('ingredient10'), Field('ingredient11'), Field('ingredient12'), Field('ingredient13'), Field('ingredient14'), Field('ingredient15'), Field('ingredient16'), Field('ingredient17'), Field('ingredient18'), Field('ingredient19'), Field('ingredient20') ],formstyle=FormStyleBulma)
-    ingredients= ''
+    form = Form([Field('search_name'), Field('search_cuisine'), Field('search_cooktime'), Field('ingredient1'), Field('ingredient2'), Field('ingredient3'), Field('ingredient4'), Field('ingredient5'), Field('ingredient6'), Field('ingredient7'), Field('ingredient8'), Field('ingredient9'), Field('ingredient10'), Field('ingredient11'), Field(
+        'ingredient12'), Field('ingredient13'), Field('ingredient14'), Field('ingredient15'), Field('ingredient16'), Field('ingredient17'), Field('ingredient18'), Field('ingredient19'), Field('ingredient20'), Field('ingredient21'), Field('ingredient22'), Field('ingredient23'), Field('ingredient24'), Field('ingredient25'), Field('ingredient26'), Field('ingredient27'), Field('ingredient28'), Field('ingredient29'), Field('ingredient30')], formstyle=FormStyleBulma, form_name='ingredients')
+    ingredients = ''
     if form.accepted:
-        for i in range(1,21):
+        search = request.params.get(
+            'search_name') + ',' + request.params.get('search_cuisine') + ',' + request.params.get('search_cooktime')
+
+        for i in range(1, 21):
+            ingredient = request.params.get('ingredient'+str(i))
+            
+            if(str(ingredient) != ''):
+                rows = db(db.user_groceries.email == get_user_email() and db.user_groceries.groceries == ingredient).select()
+                if len(rows) ==0:
+                    db.user_groceries.insert(email=get_user_email(), groceries=ingredient)
+                ingredients = ingredients + ingredient + ','
+
+        parameters = str(search) + ',' + str(ingredients)
+        redirect(URL('api/search', str(parameters)))
+    return dict(form=form)
+
+
+@action('api/grocery', method=["GET", "POST"])
+@action.uses(db, session, auth, auth.user,  'grocery_list.html')
+def forms():
+    user = get_user_email()
+    form = Form([Field('search_name'), Field('search_cuisine'), Field('search_cooktime')], formstyle=FormStyleBulma)
+    rows = db(db.user_groceries.email == user).select()
+    search = ''
+    if form.accepted:
+        search = request.params.get(
+            'search_name') + ',' + request.params.get('search_cuisine') + ',' + request.params.get('search_cooktime')+','
+        for r in rows:
+            search+= str(r['groceries'])+','
+        redirect(URL('api/search', str(search)))
+    return dict(groceries=rows, form = form)
+
+
+@action('add', method=['GET', 'POST'])
+@action.uses(db, auth, 'add.html')
+def add():
+    form = Form([Field('Ingredient')], formstyle=FormStyleBulma)
+    if form.accepted:
+        i = request.params.get('Ingredient')
+        db.user_groceries.insert(email = get_user_email(), groceries = i )
+        redirect(URL('api/grocery'))
+    return dict(form=form)
+
+@action('edit/<ing_id>', method=['GET', 'POST'])
+@action.uses(db, auth, 'edit.html')
+def edit(ing_id=None):
+    assert ing_id is not None
+    p = db.user_groceries[ing_id]
+
+    if p is None or p.email != get_user_email():
+        redirect(URL('api/grocery'))
+    form = Form(db.user_groceries, record=p,csrf_session=session, formstyle=FormStyleBulma)
+    if form.accepted:
+        redirect(URL('api/grocery'))
+    return dict(form=form)
+
+    
+@action('api/forms', method=["GET", "POST"])
+@action.uses(db, session,  'home.html')
+def forms():
+    if get_user_email() != None:
+        redirect(URL('api/forms/auth'))
+    form = Form([Field('search_name'), Field('search_cuisine'), Field('search_cooktime'), Field('ingredient1'), Field('ingredient2'), Field('ingredient3'), Field('ingredient4'), Field('ingredient5'), Field('ingredient6'), Field('ingredient7'), Field('ingredient8'), Field('ingredient9'), Field('ingredient10'), Field('ingredient11'), Field(
+        'ingredient12'), Field('ingredient13'), Field('ingredient14'), Field('ingredient15'), Field('ingredient16'), Field('ingredient17'), Field('ingredient18'), Field('ingredient19'), Field('ingredient20'), Field('ingredient21'), Field('ingredient22'), Field('ingredient23'), Field('ingredient24'), Field('ingredient25'), Field('ingredient26'), Field('ingredient27'), Field('ingredient28'), Field('ingredient29'), Field('ingredient30')], formstyle=FormStyleBulma, form_name='ingredients')
+    ingredients = ''
+    if form.accepted:
+
+        search = request.params.get(
+            'search_name') + ',' + request.params.get('search_cuisine') + ',' + request.params.get('search_cooktime')
+
+        for i in range(1, 21):
             ingredient = request.params.get('ingredient'+str(i))
             if(str(ingredient) != ''):
-                ingredients = ingredients + ingredient +','
-        redirect(URL('api/ingredients', str(ingredients) ) )
-    return dict(form = form) 
+                ingredients = ingredients + ingredient + ','
+
+        parameters = str(search) + ',' + str(ingredients)
+        redirect(URL('api/search', str(parameters)))
+    return dict(form=form)
+
+
+def filter_name(db, recipe, name):
+    totalResults = 0
+    results = db(db.recipes.name == '').select()
+    if(len(recipe) != 0):
+
+        for n in recipe:
+            rows = db(db.recipes.name == n).select()
+
+            rows += db(db.recipes.keyword1 == name).select()
+            rows += db(db.recipes.keyword2 == name).select()
+            rows += db(db.recipes.keyword3 == name).select()
+            for r in rows:
+                if r['name'] == name or r['keyword1'] == name or r['keyword2'] == name or r['keyword3'] == name:
+                    totalResults += 1
+                else:
+                    if(r['name'] in recipe):
+                        recipe.remove(r['name'])
+    else:
+
+        names = []
+        rows = db(db.recipes.name == name).select()
+        rows += db(db.recipes.keyword1 == name).select()
+        rows += db(db.recipes.keyword2 == name).select()
+        rows += db(db.recipes.keyword3 == name).select()
+        totalResults = len(rows)
+        for r in rows:
+            recipe.append(r['name'])
+    return recipe, totalResults
+
+
+def filter_cuisine(db, names, cuisine):
+    totalResults = 0
+    results = db(db.recipes.name == '').select()
+    if(len(names) != 0):
+        for n in names:
+            rows = db(db.recipes.name == n).select()
+            if rows[0]['cuisine'] == cuisine:
+                totalResults += 1
+            else:
+                names.remove(rows[0]['name'])
+    else:
+        names = []
+        rows = db(db.recipe.cuisine == cuisine).select()
+        totalResults = len(rows)
+        for r in rows:
+            names.append(r['name'])
+    return names, totalResults
+
+
+def filter_cooktime(db, names, cooktime):
+
+    totalResults = 0
+    results = db(db.recipes.name == '').select()
+    if(len(names) != 0):
+
+        for n in names:
+            rows = db(db.recipes.name == n).select()
+            if int(rows[0]['cooktime']) <= int(cooktime):
+                totalResults += 1
+            else:
+                names.remove(rows[0]['name'])
+    else:
+        names = []
+        rows = db(db.recipes.cooktime <= cooktime).select()
+        totalResults = len(rows)
+        for r in rows:
+            names.append(r['name'])
+    return names, totalResults
+
+
+def filter_ingredients(db, recipes, ingredients):
+    ingredients = ingredients.split(',')
+    recipes = {}
+    doable = []
+    totalResults = 0
+    results = {}
+    # search list of ingredients
+    for ingredient in ingredients:
+        # ingredient
+
+        ing1 = db(db.ingredients.ingredients == ingredient).select()
+        #keywords in ingredients
+        ing2 = db(db.ingredients.keyword1 == ingredient).select()
+        ing3 = db(db.ingredients.keyword2 == ingredient).select()
+        rows = ing1+ing2+ing3
+
+        if (len(rows) > 0):
+            # if ingredient or keywords exists, use ingredient's id to get recipe ownership
+            # if keyword is being used(ing2 & ing3) then set substitute table to true
+            # sub = []
+            rows2 = db(db.ownership.ingredient == '').select()
+            if(len(ing1) != 0):
+                own1 = db(db.ownership.ingredient == ing1[0]['id']).select()
+                if(len(own1) != 0):
+                    rows2 += own1
+                    # sub = [False] * len(own1)
+            if(len(ing2) != 0):
+                own2 = db(db.ownership.ingredient == ing2[0]['id']).select()
+                if(len(own2) != 0):
+                    rows2 += own2
+                    # sub = sub + [True]* len(own2)
+            if(len(ing3) != 0):
+                own3 = db(db.ownership.ingredient == ing3[0]['id']).select()
+                if(len(own3) != 0):
+                    rows2 += own3
+                    # sub = sub + [True] * len(own3)
+            # select recipes from ownership
+            for row in rows2:
+                rows3 = db(db.recipes.id == row['recipe']).select()
+                # keep track of number of ingredients found for each recipe
+                if (rows3[0]['name'] not in recipes):
+                    recipes[rows3[0]['name']] = 1
+                else:
+                    recipes[rows3[0]['name']] += 1
+                # save data if recipe is doable with ingredients found
+                if (recipes[rows3[0]['name']] == rows3[0]['number']):
+
+                    doable.append(rows3[0]['name'])
+                    totalResults += 1
+    return doable, totalResults
+
+
+@action('api/search/<parameters>', method=['GET'])
+@action.uses(db, session, auth, 'index.html')
+def searches(parameters):
+    # parse the data
+    print(parameters)
+    parameters = parameters.split(',')
+    ingredients = ''
+    for i in range(3, len(parameters)):
+        ingredients += str(parameters[i])+','
+    # index 1 = name
+    # index 2 = cuisine
+    # index 3 = cooktime
+
+    # only ingredients
+    if (parameters[0] == '' and parameters[1] == '' and parameters[2] == '' and ingredients != ''):
+        redirect(URL('api/ingredients', str(ingredients)))
+    # only name
+    elif (str(parameters[0]) != '' and parameters[1] == '' and parameters[2] == '' and ingredients == ','):
+        redirect(URL('api/name', str(parameters[0])))
+    # only cuisine
+    elif (parameters[0] == '' and parameters[1] != '' and parameters[2] == '' and ingredients == ','):
+        redirect(URL('api/cuisine', str(parameters[1])))
+    # only cooktime
+    elif (parameters[0] == '' and parameters[1] == '' and parameters[2] != '' and ingredients == ','):
+
+        redirect(URL('api/cooktime', int(parameters[2])))
+    else:
+        recipes = []
+        totalResults = 0
+        if(len(ingredients) > 1):
+
+            data = filter_ingredients(db, recipes, ingredients)
+            recipes = data[0]
+            totalResults = data[1]
+            if(len(recipes) == 0):
+                return "Error no recipes"
+        if(parameters[0] != ''):
+            data = filter_name(db, recipes, parameters[0])
+            recipes = data[0]
+            totalResults = data[1]
+            if(len(recipes) == 0):
+                return "Error no recipes"
+        if(parameters[1] != ''):
+            data = filter_cuisine(db, recipes, parameters[1])
+            recipes = data[0]
+            totalResults = data[1]
+            if(len(recipes) == 0):
+                return "Error no recipes"
+        if(parameters[2] != ''):
+            data = filter_cooktime(db, recipes, parameters[2])
+            recipes = data[0]
+            totalResults = data[1]
+            if(len(recipes) == 0):
+                return "Error no recipes"
+    
+    return dict(numResults=totalResults, names=recipes)
+
 
 ##########################################
 # Function ingredients accepts a string of
 # ingredients and returns all possible recipes
 # made by those ingredients
 ##########################################
-
-# def clean_data(ingredients):
-    
-#     return ingredients
-
-
 
 @action('api/ingredients/<ingredients>', method=['GET', 'POST'])
 @action.uses(db,'index.html')
@@ -161,8 +391,28 @@ def ingredients(ingredients):
     return dict(names= doable, numResults = totalResults )
 
 
+class MLStripper(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.strict = False
+        self.convert_charrefs = True
+        self.text = StringIO()
+
+    def handle_data(self, d):
+        self.text.write(d)
+
+    def get_data(self):
+        return self.text.getvalue()
+
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
+
 @action('api/information/<name>', method=['GET'])
-@action.uses(db, 'recipe.html')
+@action.uses(db, session, auth, 'recipe.html')
 def information(name):
     ingredient_information = {}
     row = db(db.recipes.name == name ).select()
@@ -179,18 +429,37 @@ def information(name):
     return dict(recipe=row, ingredients=ingredient_information.keys(), amounts=ingredient_information, instructions=instructions, descriptions=description)
 
 
-@action('api/cuisine/<cuisine>', method=['GET'])
+@action('api/mealplan', method=['GET', 'POST'])
 @action.uses(db)
+def meal_plan():
+    return
+
+##########################################
+# Functions that serve to comply additional
+# search parameters the user may want
+# X4 funcs 
+##########################################
+
+@action('api/cuisine/<cuisine>', method=['GET'])
+@action.uses(db, 'index.html')
 def cuisine(cuisine):
     rows = db(db.recipes.cuisine == cuisine).select()
-    return rows.json()
+    totalResults = len(rows)
+    names = []
+    for r in rows:
+        names.append(r['name'])
+    return dict(numResults=totalResults, names=names)
 
 
 @action('api/cooktime/<cooktime>', method=['GET'])
-@action.uses(db)
+@action.uses(db, 'index.html')
 def cooktime(cooktime):
-    rows = db(db.recipes.cooktime == cooktime).select()
-    return rows.json()
+    rows = db(db.recipes.cooktime <= cooktime).select()
+    totalResults = len(rows)
+    names = []
+    for r in rows:
+        names.append(r['name'])
+    return dict(numResults=totalResults, names=names)
 
 
 @action('api/ingredient/<ingredient>', method=['GET'])
@@ -205,32 +474,37 @@ def single_ingredient(ingredient):
             # get and save recipe
             rows3 = db(db.recipes.id == row['recipe']).select()
             doable.append(rows3.json())
-    # print(doable[0][0]['id'])
     return doable
 
 
 @action('api/name/<name>', method=['GET'])
-@action.uses(db)
+@action.uses(db, 'index.html')
 def name(name):
-    results = []
+
     totalResults = 0
+
     rows = db(db.recipes.name == name).select()
-    if (rows):
-        totalResults += len(rows)
-        results.append(rows.json())
+    results = rows
+    totalResults += len(rows)
+
     # key1
     rows = db(db.recipes.keyword1 == name).select()
-    if (rows):
-        totalResults += len(rows)
-        results.append(rows.json())
+    totalResults += len(rows)
+    results += rows
+
     # key2
     rows = db(db.recipes.keyword2 == name).select()
-    if(rows):
-        results.append(rows.json())
+    totalResults += len(rows)
+    results += rows
     # key3
     rows = db(db.recipes.keyword3 == name).select()
-    if (rows):
-        totalResults += len(rows)
-        results.append(rows.json())
+    totalResults += len(rows)
+    results += rows
 
-    return results
+    names = []
+    for r in results:
+
+        names.append(r['name'])
+    return dict(numResults=totalResults, names=names)
+
+
