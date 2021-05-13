@@ -57,3 +57,10 @@ CREATE TABLE "user_groceries"(
     "groceries" CHAR(512)
 );
 success!
+timestamp: 2021-05-13T13:12:20.784896
+CREATE TABLE "user_recipes"(
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "email" CHAR(512),
+    "recipe" INTEGER REFERENCES "recipes" ("id") ON DELETE CASCADE  
+);
+success!

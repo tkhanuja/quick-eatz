@@ -52,7 +52,13 @@ def index():
     redirect(URL('api/forms'))
     return 
 
+@action('user_error', method = ['GET'])
+def user_error():
+    return 'ERROR- PLEASE SIGN IN'
 
+##########################################
+# Search forms for authorized users
+##########################################
 @action('api/forms/auth', method=["GET", "POST"])
 @action.uses(db, session, auth, auth.user, 'home_auth.html')
 def forms():
@@ -76,47 +82,9 @@ def forms():
         redirect(URL('api/search', str(parameters)))
     return dict(form=form)
 
-
-@action('api/grocery', method=["GET", "POST"])
-@action.uses(db, session, auth, auth.user,  'grocery_list.html')
-def forms():
-    user = get_user_email()
-    form = Form([Field('search_name'), Field('search_cuisine'), Field('search_cooktime')], formstyle=FormStyleBulma)
-    rows = db(db.user_groceries.email == user).select()
-    search = ''
-    if form.accepted:
-        search = request.params.get(
-            'search_name') + ',' + request.params.get('search_cuisine') + ',' + request.params.get('search_cooktime')+','
-        for r in rows:
-            search+= str(r['groceries'])+','
-        redirect(URL('api/search', str(search)))
-    return dict(groceries=rows, form = form)
-
-
-@action('add', method=['GET', 'POST'])
-@action.uses(db, auth, 'add.html')
-def add():
-    form = Form([Field('Ingredient')], formstyle=FormStyleBulma)
-    if form.accepted:
-        i = request.params.get('Ingredient')
-        db.user_groceries.insert(email = get_user_email(), groceries = i )
-        redirect(URL('api/grocery'))
-    return dict(form=form)
-
-@action('edit/<ing_id>', method=['GET', 'POST'])
-@action.uses(db, auth, 'edit.html')
-def edit(ing_id=None):
-    assert ing_id is not None
-    p = db.user_groceries[ing_id]
-
-    if p is None or p.email != get_user_email():
-        redirect(URL('api/grocery'))
-    form = Form(db.user_groceries, record=p,csrf_session=session, formstyle=FormStyleBulma)
-    if form.accepted:
-        redirect(URL('api/grocery'))
-    return dict(form=form)
-
-    
+##########################################
+# Search forms for unauthorized users
+##########################################
 @action('api/forms', method=["GET", "POST"])
 @action.uses(db, session,  'home.html')
 def forms():
@@ -139,6 +107,9 @@ def forms():
         redirect(URL('api/search', str(parameters)))
     return dict(form=form)
 
+##########################################
+# Search funcs to filter results with several params
+# x4 search filtering funcs
 
 def filter_name(db, recipe, name):
     totalResults = 0
@@ -261,12 +232,18 @@ def filter_ingredients(db, recipes, ingredients):
                     totalResults += 1
     return doable, totalResults
 
+# End of search filtering funcs
+##########################################
 
+##########################################
+# Search Function for finding recipes 
+# that match the parameters
+##########################################
 @action('api/search/<parameters>', method=['GET'])
 @action.uses(db, session, auth, 'index.html')
 def searches(parameters):
     # parse the data
-    print(parameters)
+   
     parameters = parameters.split(',')
     ingredients = ''
     for i in range(3, len(parameters)):
@@ -319,12 +296,166 @@ def searches(parameters):
     
     return dict(numResults=totalResults, names=recipes)
 
+##########################################
+# Class to remove all html tags from string
+# used in data cleaning for recipe information
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.strict = False
+        self.convert_charrefs = True
+        self.text = StringIO()
+
+    def handle_data(self, d):
+        self.text.write(d)
+
+    def get_data(self):
+        return self.text.getvalue()
+
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
+##########################################
 
 ##########################################
-# Function ingredients accepts a string of
-# ingredients and returns all possible recipes
-# made by those ingredients
+# Get recipe information to display
+# on a single page
 ##########################################
+
+@action('api/information/<name>', method=['GET'])
+@action.uses(db, session, auth, 'recipe.html')
+def information(name):
+
+    ingredient_information = {}
+    row = db(db.recipes.name == name ).select()
+    
+    row2 = db(db.ownership.recipe == row[0]['id']).select()
+    
+    for rows in row2:
+        row3 = db(db.ingredients.id == rows['ingredient']).select()
+        ingredient_information[row3[0]['ingredients']]= rows['amount']
+
+    instructions= strip_tags(row[0]['instructions'])
+    description = strip_tags(row[0]['description'])
+
+    return dict(recipe=row, ingredients=ingredient_information.keys(), amounts=ingredient_information, instructions=instructions, descriptions=description)
+
+##########################################
+# 2 funcs to save and display the users 
+# saved recipes
+# for authorized users only
+@action('api/save_recipe/<recipe_id>', method = ['GET'])
+@action.uses(db, session, auth,'recipe.html' )
+def save_recipe(recipe_id):
+    assert recipe_id is not None
+    if get_user_email()== None:
+        return jsonify('error')
+    db.user_recipes.insert(email = get_user_email(),recipe = recipe_id )
+    q = db.recipes[recipe_id]
+    redirect(URL('api/information', q.name))
+
+@action('api/user_recipes', method = ["GET"])
+@action.uses(db, session, auth, auth.user, 'index.html')
+def user_recipes():
+   
+    rows = db(db.user_recipes.email == get_user_email()).select()
+    names = []
+    ct = 0
+    for r in rows:
+        rows2 = db(db.recipes.id == r.id).select()
+        names.append(rows2[0].name)
+        ct+=1
+    print (names)
+    return dict(numResults = ct, names = names)
+
+##########################################
+
+
+##########################################
+# Saved Grocery list for authorized users
+##########################################
+@action('api/grocery', method=["GET", "POST"])
+@action.uses(db, session, auth, auth.user,  'grocery_list.html')
+def forms():
+    
+    user = get_user_email()
+
+    form = Form([Field('search_name'), Field('search_cuisine'), Field('search_cooktime')], formstyle=FormStyleBulma)
+    rows = db(db.user_groceries.email == user).select()
+    search = ''
+    if form.accepted:
+        search = request.params.get(
+            'search_name') + ',' + request.params.get('search_cuisine') + ',' + request.params.get('search_cooktime')+','
+        for r in rows:
+            search+= str(r['groceries'])+','
+        redirect(URL('api/search', str(search)))
+    return dict(groceries=rows, form = form)
+
+##########################################
+# Update grocery list for auth users
+
+@action('add', method=['GET', 'POST'])
+@action.uses(db, auth,auth.user 'add.html')
+def add():
+    form = Form([Field('Ingredient')], formstyle=FormStyleBulma)
+    if form.accepted:
+        i = request.params.get('Ingredient')
+        db.user_groceries.insert(email = get_user_email(), groceries = i )
+        redirect(URL('api/grocery'))
+    return dict(form=form)
+
+@action('edit/<ing_id>', method=['GET', 'POST'])
+@action.uses(db, auth,auth.user 'edit.html')
+def edit(ing_id=None):
+
+    assert ing_id is not None
+    p = db.user_groceries[ing_id]
+
+    if p is None or p.email != get_user_email():
+        return jsonify({'message': 'Please sign in'})
+        redirect(URL('api/grocery'))
+    form = Form(db.user_groceries, record=p,csrf_session=session, formstyle=FormStyleBulma)
+    if form.accepted:
+        redirect(URL('api/grocery'))
+    return dict(form=form)
+# End of Grocery list updating funcs
+##########################################
+
+@action('api/mealplan', method=['GET', 'POST'])
+@action.uses(db)
+def meal_plan():
+    return
+
+##########################################
+# Functions that serve to comply additional
+# search parameters the user may want
+# x5 funcs 
+
+@action('api/cuisine/<cuisine>', method=['GET'])
+@action.uses(db, 'index.html')
+def cuisine(cuisine):
+    rows = db(db.recipes.cuisine == cuisine).select()
+    totalResults = len(rows)
+    names = []
+    for r in rows:
+        names.append(r['name'])
+    return dict(numResults=totalResults, names=names)
+
+
+@action('api/cooktime/<cooktime>', method=['GET'])
+@action.uses(db, 'index.html')
+def cooktime(cooktime):
+    rows = db(db.recipes.cooktime <= cooktime).select()
+    totalResults = len(rows)
+    names = []
+    for r in rows:
+        names.append(r['name'])
+    return dict(numResults=totalResults, names=names)
+
 
 @action('api/ingredients/<ingredients>', method=['GET', 'POST'])
 @action.uses(db,'index.html')
@@ -391,77 +522,6 @@ def ingredients(ingredients):
     return dict(names= doable, numResults = totalResults )
 
 
-class MLStripper(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.reset()
-        self.strict = False
-        self.convert_charrefs = True
-        self.text = StringIO()
-
-    def handle_data(self, d):
-        self.text.write(d)
-
-    def get_data(self):
-        return self.text.getvalue()
-
-
-def strip_tags(html):
-    s = MLStripper()
-    s.feed(html)
-    return s.get_data()
-
-@action('api/information/<name>', method=['GET'])
-@action.uses(db, session, auth, 'recipe.html')
-def information(name):
-    ingredient_information = {}
-    row = db(db.recipes.name == name ).select()
-    
-    row2 = db(db.ownership.recipe == row[0]['id']).select()
-    
-    for rows in row2:
-        row3 = db(db.ingredients.id == rows['ingredient']).select()
-        ingredient_information[row3[0]['ingredients']]= rows['amount']
-
-    instructions= strip_tags(row[0]['instructions'])
-    description = strip_tags(row[0]['description'])
-
-    return dict(recipe=row, ingredients=ingredient_information.keys(), amounts=ingredient_information, instructions=instructions, descriptions=description)
-
-
-@action('api/mealplan', method=['GET', 'POST'])
-@action.uses(db)
-def meal_plan():
-    return
-
-##########################################
-# Functions that serve to comply additional
-# search parameters the user may want
-# X4 funcs 
-##########################################
-
-@action('api/cuisine/<cuisine>', method=['GET'])
-@action.uses(db, 'index.html')
-def cuisine(cuisine):
-    rows = db(db.recipes.cuisine == cuisine).select()
-    totalResults = len(rows)
-    names = []
-    for r in rows:
-        names.append(r['name'])
-    return dict(numResults=totalResults, names=names)
-
-
-@action('api/cooktime/<cooktime>', method=['GET'])
-@action.uses(db, 'index.html')
-def cooktime(cooktime):
-    rows = db(db.recipes.cooktime <= cooktime).select()
-    totalResults = len(rows)
-    names = []
-    for r in rows:
-        names.append(r['name'])
-    return dict(numResults=totalResults, names=names)
-
-
 @action('api/ingredient/<ingredient>', method=['GET'])
 @action.uses(db)
 def single_ingredient(ingredient):
@@ -507,4 +567,5 @@ def name(name):
         names.append(r['name'])
     return dict(numResults=totalResults, names=names)
 
-
+# End of search funcs
+##########################################
