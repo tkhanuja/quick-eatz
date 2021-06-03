@@ -17,6 +17,7 @@ def get_user_email():
 def get_time():
     return datetime.datetime.utcnow()
 db.define_table('recipes',
+                Field('email', default = None),
                 Field('name', type='string', unique = True),
                 Field('cooktime', type='integer'),
                 Field('cuisine', type='string', default="American"),
@@ -41,7 +42,9 @@ db.define_table('ownership',
 db.define_table('user_groceries',
                 Field('email', writable = False),
                 Field('groceries'))
-db.define_table('user_recipes', Field('email', writable = False), Field('recipe', type = 'reference recipes'))
+db.define_table('user_recipes',
+                Field('email', writable = False), 
+                Field('recipe', type = 'reference recipes'))
 db.commit()
 recipes_and_ingredients = db((db.recipes.id == db.ownership.recipe) and (
     db.ingredients.id == db.ownership.ingredient))

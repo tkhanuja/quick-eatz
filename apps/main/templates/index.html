@@ -1,13 +1,36 @@
 [[extend 'layout.html']]
+<style>
+  [v-cloak] {
+    display: none;
+  }
+</style>
+[[block page_scripts]]
+<!-- Loads the index-specific js for Vue -->
 
-<div class="section">
-  <div>Total Results: [[=numResults]]</div>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/index.js"></script>
+[[end]]
+
+<div class="section" id="vue-target" v-cloak>
+  <div>Total Results: {{total_results}}</div>
   <div>
-    [[for n in names:]]
-    <div>
-      <a href="[[ =URL('api/information/', n) ]]">
-        <button>[[=n]]</button>
+    <div v-for='r in results'>
+
+      <div>
+        <a href="[[ =URL('api/information') ]]">
+          <button>{{r}}</button>
+      </div>
     </div>
-    [[pass]]
   </div>
 </div>
+
+
+<script>
+
+  
+  let url_search = "[[=XML(url_search)]]";
+  let url_information = "[[=XML(url_information)]]";
+
+</script>

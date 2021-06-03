@@ -64,3 +64,6 @@ CREATE TABLE "user_recipes"(
     "recipe" INTEGER REFERENCES "recipes" ("id") ON DELETE CASCADE  
 );
 success!
+timestamp: 2021-05-13T17:07:58.772080
+ALTER TABLE "recipes" ADD "email" CHAR(512);
+success!
